@@ -1,7 +1,7 @@
 import type * as checks from "./checks.js";
 import type * as JSONSchema from "./json-schema.js";
 import { $ZodRegistry, globalRegistry } from "./registries.js";
-import type * as schemas from "./schemas.js";
+import * as schemas from "./schemas.js";
 
 interface JSONSchemaGeneratorParams {
   /** A registry used to look up metadata for each schema. Any schema with an `id` property will be extracted as a $def. */
@@ -91,6 +91,13 @@ export class JSONSchemaGenerator {
 
   process(schema: schemas.$ZodType, _params: ProcessParams = { path: [], schemaPath: [] }): JSONSchema.BaseSchema {
     const def = (schema as schemas.$ZodTypes)._zod.def;
+
+    if (def.type === 'optional') {
+      // - both optional and nonoptional schemas result in the same JSON Schema definition
+      // - optional only has meaning in the context of the outer schema
+      return this.process(def.innerType, _params)
+    }
+
     // if (def.type === "lazy") {
     //   return this.process((schema as schemas.$ZodLazy)._zod._getter, _params);
     // } else if (def.type === "promise") {
@@ -409,11 +416,6 @@ export class JSONSchemaGenerator {
         if (this.unrepresentable === "throw") {
           throw new Error("Transforms cannot be represented in JSON Schema");
         }
-        break;
-      }
-      case "optional": {
-        const inner = this.process(def.innerType, params);
-        Object.assign(_json, inner);
         break;
       }
       case "nullable": {
