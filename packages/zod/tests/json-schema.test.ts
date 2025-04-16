@@ -849,6 +849,56 @@ describe("toJSONSchema", () => {
     `
     );
   });
+
+  it("same object optional and nonoptional", () => {
+    const Internal = z.object({
+      num: z.number(),
+      str: z.string()
+    })
+
+    const External = z.object({
+      int: Internal,
+      intOpt: Internal.optional()
+    })
+
+    const result = toJSONSchema(External, {reused: "ref"});
+
+    expect(JSON.stringify(result, null, 2)).toMatchInlineSnapshot(
+      `
+      "{
+        "type": "object",
+        "properties": {
+          "int": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "intOpt": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "required": [
+          "int"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "object",
+            "properties": {
+              "num": {
+                "type": "number"
+              },
+              "str": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "num",
+              "str"
+            ]
+          }
+        }
+      }"
+    `
+    );
+  });
 });
 
 it("override", () => {
